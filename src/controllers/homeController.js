@@ -1,15 +1,24 @@
+import db from "../models/index";
+let getHomePage = async(req, res) => {
+    try {
+        let data = await db.User.findAll();
 
-let getHomePage = (req,res) =>{
-    return res.render('homepage.ejs');
+        return res.render('homepage.ejs', {
+            data: JSON.stringify(data)
+        });
+    } catch (error) {
+        console.log(error);
+    }
+
 }
-let getAboutPage = (req,res)=>{
+let getAboutPage = (req, res) => {
     return res.render('test/about.ejs');
 }
-// object: {
-//     key:'',
-//     value:""
-// }
+let getCRUD = (req, res) => {
+    return res.render('crud.ejs');
+}
 module.exports = {
     getHomePage: getHomePage,
-    getAboutPage: getAboutPage
+    getAboutPage: getAboutPage,
+    getCRUD: getCRUD,
 }
