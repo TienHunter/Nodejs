@@ -17,6 +17,7 @@ let createNewUser = async(data) => {
                 roleId: data.roleId,
                 phoneNumber: data.phoneNumber
             });
+            resolve('ok! create user succeed!');
         } catch (e) {
             reject(e)
         }
@@ -46,7 +47,53 @@ let getAllUser = () => {
         }
     })
 }
+let getUserInfoById = (userId) => {
+    return new Promise(async(resolve, reject) => {
+        try {
+            let user = await db.User.findOne({
+                where: { id: userId },
+                raw: true
+            })
+            if (user) {
+                resolve(user);
+            } else {
+                resolve([]);
+            }
+
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+let updateUserData = (data) => {
+    // console.log('data from service')
+    // console.log(data);
+    return new Promise(async(resolve, reject) => {
+        try {
+            let user = await db.User.findOne({
+                where: { id: data.id }
+            })
+            if (user) {
+                user.firstName = data.firstName;
+                user.lastName = data.lastName;
+                user.address = data.address;
+
+                await user.save();
+                let allUsers = await db.User.findAll();
+                resolve(allUsers);
+            } else {
+                resolve();
+            }
+
+        } catch (error) {
+            reject(error);
+        }
+    })
+
+}
 module.exports = {
     createNewUser: createNewUser,
-    getAllUser: getAllUser
+    getAllUser: getAllUser,
+    getUserInfoById: getUserInfoById,
+    updateUserData: updateUserData,
 }
