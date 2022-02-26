@@ -55,22 +55,45 @@ let getAllDoctors = () => {
 let saveDetailInforDoctor = (inputData) => {
    return new Promise(async (resolve, reject) => {
       try {
-         if (!inputData.doctorId || !inputData.contentHTML || !inputData.contentMarkdown) {
+         if (!inputData.doctorId || !inputData.contentHTML || !inputData.contentMarkdown || !inputData.description) {
             resolve({
                errCode: 1,
                errMessage: 'Missing required parameter'
             })
          } else {
-            await db.Markdown.create({
-               contentHTML: inputData.contentHTML,
-               contentMarkdown: inputData.contentMarkdown,
-               description: inputData.description,
-               doctorId: inputData.doctorId
-            });
-            resolve({
-               errCode: 0,
-               message: 'Create infor doctor success'
-            })
+            if (inputData.action === 'CREATE') {
+               await db.Markdown.create({
+                  contentHTML: inputData.contentHTML,
+                  contentMarkdown: inputData.contentMarkdown,
+                  description: inputData.description,
+                  doctorId: inputData.doctorId
+               });
+               resolve({
+                  errCode: 0,
+                  message: 'Create infor doctor success'
+               })
+            } else if (inputData.action === 'UPDATE') {
+               let doctorMarkdown = await db.Markdown.findOne({
+                  where: { doctorId: inputData.doctorId },
+                  raw: false
+               })
+               if (doctorMarkdown) {
+                  doctorMarkdown.contentHTML = inputData.contentHTML;
+                  doctorMarkdown.contentMarkdown = inputData.contentMarkdown;
+                  doctorMarkdown.description = inputData.description;
+                  await doctorMarkdown.save();
+                  resolve({
+                     errCode: 0,
+                     message: 'update infor doctor success'
+                  })
+               } else {
+                  resolve({
+                     errCode: 1,
+                     message: `Don't find infor doctor to update`
+                  })
+               }
+
+            }
          }
       } catch (e) {
          reject(e)
@@ -82,14 +105,14 @@ let getDetailDoctorById = (id) => {
       try {
          if (!id) {
             resolve({
-               errcode: 1,
+               errCode: 1,
                errMessage: 'Missing required parameter'
             })
          } else {
             let data = await db.User.findOne({
                where: { id: id },
                attributes: {
-                  exclude: ['password', 'image']
+                  exclude: ['password']
                },
                include: [
                   {
@@ -103,9 +126,12 @@ let getDetailDoctorById = (id) => {
                   },
 
                ],
-               raw: true,
+               raw: false,
                nest: true
             })
+            if (data && data.image) {
+               data.image = new Buffer(data.image, 'base64').toString('binary');
+            }
             resolve({
                errCode: 0,
                data: data
