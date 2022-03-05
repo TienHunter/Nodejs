@@ -1,4 +1,7 @@
 import db from "../models/index";
+require('dotenv').config()
+
+const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE
 
 let getTopDoctorHome = (limit) => {
    return new Promise(async (resolve, reject) => {
@@ -89,7 +92,7 @@ let saveDetailInforDoctor = (inputData) => {
                } else {
                   resolve({
                      errCode: 1,
-                     message: `Don't find infor doctor to update`
+                     errMessage: `Don't find infor doctor to update`
                   })
                }
 
@@ -142,9 +145,43 @@ let getDetailDoctorById = (id) => {
       }
    })
 }
+let bulkScheduleDoctor = (data) => {
+   return new Promise(async (resolve, reject) => {
+      try {
+         if (!data.doctorId || !data.formateDate) {
+            resolve({
+               errCode: 1,
+               errMessage: 'Missing required parameter'
+            })
+         } else {
+            // remove old data in db
+            await db.Schedule.destroy({
+               where: { doctorId: data.doctorId }
+            });
+            let schedules = data.arrSchedule
+            if (schedules && schedules.length > 0) {
+               schedules = schedules.map(item => ({
+                  ...item,
+                  maxNumber: MAX_NUMBER_SCHEDULE
+               }))
+               //create data in db
+               await db.Schedule.bulkCreate(schedules)
+            }
+            resolve({
+               errCode: 0,
+               message: 'OKE'
+            })
+         }
+
+      } catch (error) {
+         reject(error)
+      }
+   })
+}
 module.exports = {
    getTopDoctorHome: getTopDoctorHome,
    getAllDoctors: getAllDoctors,
    saveDetailInforDoctor: saveDetailInforDoctor,
    getDetailDoctorById: getDetailDoctorById,
+   bulkScheduleDoctor: bulkScheduleDoctor
 }
