@@ -154,9 +154,13 @@ let bulkScheduleDoctor = (data) => {
                errMessage: 'Missing required parameter'
             })
          } else {
-            // remove old data in db
+            // delete old data in db
+            console.log(data);
             await db.Schedule.destroy({
-               where: { doctorId: data.doctorId }
+               where: {
+                  doctorId: data.doctorId,
+                  date: data.formateDate
+               }
             });
             let schedules = data.arrSchedule
             if (schedules && schedules.length > 0) {
@@ -178,10 +182,42 @@ let bulkScheduleDoctor = (data) => {
       }
    })
 }
+let getScheduleDoctorById = (doctorId, date) => {
+   return new Promise(async (resolve, reject) => {
+      try {
+         if (!doctorId || !date) {
+            resolve({
+               errCode: 1,
+               errMessage: 'Missing required parameter'
+            })
+         } else {
+            let schedules = await db.Schedule.findAll({
+               where: {
+                  doctorId,
+                  date
+               },
+               include: [
+                  { model: db.Allcode, as: 'timeData', attributes: ['valueEn', 'valueVi'] },
+               ],
+               raw: true,
+               nest: true
+            })
+            if (!schedules) schedules = []
+            resolve({
+               errCode: 0,
+               data: schedules
+            })
+         }
+      } catch (error) {
+         reject(error)
+      }
+   })
+}
 module.exports = {
    getTopDoctorHome: getTopDoctorHome,
    getAllDoctors: getAllDoctors,
    saveDetailInforDoctor: saveDetailInforDoctor,
    getDetailDoctorById: getDetailDoctorById,
-   bulkScheduleDoctor: bulkScheduleDoctor
+   bulkScheduleDoctor: bulkScheduleDoctor,
+   getScheduleDoctorById: getScheduleDoctorById
 }
