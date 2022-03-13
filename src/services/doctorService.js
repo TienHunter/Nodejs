@@ -58,12 +58,20 @@ let getAllDoctors = () => {
 let saveDetailInforDoctor = (inputData) => {
    return new Promise(async (resolve, reject) => {
       try {
-         if (!inputData.doctorId || !inputData.contentHTML || !inputData.contentMarkdown || !inputData.description) {
+         if (!inputData.doctorId ||
+
+            !inputData.contentHTML || !inputData.contentMarkdown || !inputData.description ||
+
+            !inputData.priceId || !inputData.provinceId || !inputData.paymentId ||
+            !inputData.addressClinic || !inputData.nameClinic || !inputData.note
+
+         ) {
             resolve({
                errCode: 1,
                errMessage: 'Missing required parameter'
             })
          } else {
+            //upsert table markdown
             if (inputData.action === 'CREATE') {
                await db.Markdown.create({
                   contentHTML: inputData.contentHTML,
@@ -71,11 +79,8 @@ let saveDetailInforDoctor = (inputData) => {
                   description: inputData.description,
                   doctorId: inputData.doctorId
                });
-               resolve({
-                  errCode: 0,
-                  message: 'Create infor doctor success'
-               })
-            } else if (inputData.action === 'UPDATE') {
+            }
+            if (inputData.action === 'UPDATE') {
                let doctorMarkdown = await db.Markdown.findOne({
                   where: { doctorId: inputData.doctorId },
                   raw: false
@@ -85,17 +90,39 @@ let saveDetailInforDoctor = (inputData) => {
                   doctorMarkdown.contentMarkdown = inputData.contentMarkdown;
                   doctorMarkdown.description = inputData.description;
                   await doctorMarkdown.save();
-                  resolve({
-                     errCode: 0,
-                     message: 'update infor doctor success'
-                  })
-               } else {
-                  resolve({
-                     errCode: 1,
-                     errMessage: `Don't find infor doctor to update`
-                  })
                }
-
+            }
+            // upsert table doctor_infor
+            let doctorInfor = await db.Doctor_Infor.findOne({
+               where: { doctorId: inputData.doctorId },
+               raw: false
+            });
+            if (doctorInfor) {
+               doctorInfor.priceId = inputData.priceId;
+               doctorInfor.provinceId = inputData.provinceId;
+               doctorInfor.paymentId = inputData.paymentId;
+               doctorInfor.addressClinic = inputData.addressClinic;
+               doctorInfor.nameClinic = inputData.nameClinic;
+               doctorInfor.note = inputData.note;
+               await doctorInfor.save();
+               resolve({
+                  errCode: 0,
+                  message: 'update infor doctor success __infor'
+               })
+            } else {
+               await db.Doctor_Infor.create({
+                  priceId: inputData.priceId,
+                  provinceId: inputData.provinceId,
+                  paymentId: inputData.paymentId,
+                  addressClinic: inputData.addressClinic,
+                  nameClinic: inputData.nameClinic,
+                  note: inputData.note,
+                  doctorId: inputData.doctorId
+               });
+               resolve({
+                  errCode: 0,
+                  message: 'Create infor doctor success __ infor'
+               })
             }
          }
       } catch (e) {
