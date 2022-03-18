@@ -71,45 +71,15 @@ let saveDetailInforDoctor = (inputData) => {
                errMessage: 'Missing required parameter'
             })
          } else {
-            //upsert table markdown
             if (inputData.action === 'CREATE') {
+               //create data in table markdown
                await db.Markdown.create({
                   contentHTML: inputData.contentHTML,
                   contentMarkdown: inputData.contentMarkdown,
                   description: inputData.description,
                   doctorId: inputData.doctorId
                });
-            }
-            if (inputData.action === 'UPDATE') {
-               let doctorMarkdown = await db.Markdown.findOne({
-                  where: { doctorId: inputData.doctorId },
-                  raw: false
-               })
-               if (doctorMarkdown) {
-                  doctorMarkdown.contentHTML = inputData.contentHTML;
-                  doctorMarkdown.contentMarkdown = inputData.contentMarkdown;
-                  doctorMarkdown.description = inputData.description;
-                  await doctorMarkdown.save();
-               }
-            }
-            // upsert table doctor_infor
-            let doctorInfor = await db.Doctor_Infor.findOne({
-               where: { doctorId: inputData.doctorId },
-               raw: false
-            });
-            if (doctorInfor) {
-               doctorInfor.priceId = inputData.priceId;
-               doctorInfor.provinceId = inputData.provinceId;
-               doctorInfor.paymentId = inputData.paymentId;
-               doctorInfor.addressClinic = inputData.addressClinic;
-               doctorInfor.nameClinic = inputData.nameClinic;
-               doctorInfor.note = inputData.note;
-               await doctorInfor.save();
-               resolve({
-                  errCode: 0,
-                  message: 'update infor doctor success __infor'
-               })
-            } else {
+               // create data in table doctor_infor
                await db.Doctor_Infor.create({
                   priceId: inputData.priceId,
                   provinceId: inputData.provinceId,
@@ -121,8 +91,49 @@ let saveDetailInforDoctor = (inputData) => {
                });
                resolve({
                   errCode: 0,
-                  message: 'Create infor doctor success __ infor'
+                  message: 'Create infor doctor  && markdown success __ infor'
                })
+            }
+            if (inputData.action === 'UPDATE') {
+               let doctorMarkdown = await db.Markdown.findOne({
+                  where: { doctorId: inputData.doctorId },
+                  raw: false
+               })
+               let doctorInfor = await db.Doctor_Infor.findOne({
+                  where: { doctorId: inputData.doctorId },
+                  raw: false
+               });
+               if (!doctorMarkdown) {
+                  resolve({
+                     errCode: 1,
+                     errMessage: "Don't find doctorMarkdown to update"
+                  })
+               }
+               if (!doctorInfor) {
+                  resolve({
+                     errCode: 1,
+                     errMessage: "Dont find doctorInfor to update"
+                  })
+               }
+               if (doctorMarkdown) {
+                  doctorMarkdown.contentHTML = inputData.contentHTML;
+                  doctorMarkdown.contentMarkdown = inputData.contentMarkdown;
+                  doctorMarkdown.description = inputData.description;
+                  await doctorMarkdown.save();
+               }
+               if (doctorInfor) {
+                  doctorInfor.priceId = inputData.priceId;
+                  doctorInfor.provinceId = inputData.provinceId;
+                  doctorInfor.paymentId = inputData.paymentId;
+                  doctorInfor.addressClinic = inputData.addressClinic;
+                  doctorInfor.nameClinic = inputData.nameClinic;
+                  doctorInfor.note = inputData.note;
+                  await doctorInfor.save();
+                  resolve({
+                     errCode: 0,
+                     message: 'update infor doctor && markdown success __infor'
+                  })
+               }
             }
          }
       } catch (e) {
@@ -150,10 +161,36 @@ let getDetailDoctorById = (id) => {
                      attributes: ['contentHTML', 'contentMarkdown', 'description']
                   },
                   {
+                     // allcode is associated to user
                      model: db.Allcode,
                      as: 'positionData',
                      attributes: ['valueEn', 'valueVi']
                   },
+                  {
+                     model: db.Doctor_Infor,
+                     attributes: {
+                        exclude: ['id', 'doctorId', 'createdAt', 'updatedAt']
+                     },
+                     // allcode is associated to doctor_infor
+                     include: [
+                        {
+                           model: db.Allcode,
+                           as: 'priceData',
+                           attributes: ['valueEn', 'valueVi']
+                        },
+                        {
+                           model: db.Allcode,
+                           as: 'provinceData',
+                           attributes: ['valueEn', 'valueVi']
+                        },
+                        {
+                           model: db.Allcode,
+                           as: 'paymentData',
+                           attributes: ['valueEn', 'valueVi']
+                        }
+                     ]
+                  },
+
 
                ],
                raw: false,
@@ -240,11 +277,57 @@ let getScheduleDoctorById = (doctorId, date) => {
       }
    })
 }
+let getMedicalAddressByDoctorId = (doctorId) => {
+   return new Promise(async (resolve, reject) => {
+      try {
+         if (!doctorId) {
+            resolve({
+               errCode: 1,
+               errMessage: 'Missing required parameter'
+            })
+         } else {
+            let data = await db.Doctor_Infor.findOne({
+               where: { doctorId: doctorId },
+               attributes: ['priceId', 'provinceId', 'paymentId', 'addressClinic', 'nameClinic', 'note'],
+               // allcode is associated to doctor_infor
+               include: [
+                  {
+                     model: db.Allcode,
+                     as: 'priceData',
+                     attributes: ['valueEn', 'valueVi']
+                  },
+                  {
+                     model: db.Allcode,
+                     as: 'provinceData',
+                     attributes: ['valueEn', 'valueVi']
+                  },
+                  {
+                     model: db.Allcode,
+                     as: 'paymentData',
+                     attributes: ['valueEn', 'valueVi']
+                  }
+               ],
+               raw: false,
+               nest: true
+            })
+            if (!data) data = {};
+            resolve({
+               errCode: 0,
+               data: data
+            })
+         }
+      } catch (error) {
+         reject(error)
+      }
+   })
+}
+
 module.exports = {
    getTopDoctorHome: getTopDoctorHome,
    getAllDoctors: getAllDoctors,
    saveDetailInforDoctor: saveDetailInforDoctor,
    getDetailDoctorById: getDetailDoctorById,
    bulkScheduleDoctor: bulkScheduleDoctor,
-   getScheduleDoctorById: getScheduleDoctorById
+   getScheduleDoctorById: getScheduleDoctorById,
+   getMedicalAddressByDoctorId: getMedicalAddressByDoctorId
 }
