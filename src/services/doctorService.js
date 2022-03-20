@@ -156,6 +156,7 @@ let getDetailDoctorById = (id) => {
                   exclude: ['password']
                },
                include: [
+                  // table markdown
                   {
                      model: db.Markdown,
                      attributes: ['contentHTML', 'contentMarkdown', 'description']
@@ -166,6 +167,8 @@ let getDetailDoctorById = (id) => {
                      as: 'positionData',
                      attributes: ['valueEn', 'valueVi']
                   },
+
+                  // table doctor infor
                   {
                      model: db.Doctor_Infor,
                      attributes: {
@@ -219,7 +222,6 @@ let bulkScheduleDoctor = (data) => {
             })
          } else {
             // delete old data in db
-            console.log(data);
             await db.Schedule.destroy({
                where: {
                   doctorId: data.doctorId,
@@ -321,7 +323,77 @@ let getMedicalAddressByDoctorId = (doctorId) => {
       }
    })
 }
+let getProfileDoctorByDoctorId = (doctorId) => {
+   return new Promise(async (resolve, reject) => {
+      try {
+         if (!doctorId) {
+            resolve({
+               errCode: 1,
+               errMessage: 'Missing required parameter'
+            })
+         } else {
+            let data = await db.User.findOne({
+               where: { id: doctorId },
+               attributes: {
+                  exclude: ['password']
+               },
+               include: [
+                  // table markdown
+                  {
+                     model: db.Markdown,
+                     attributes: ['contentHTML', 'contentMarkdown', 'description']
+                  },
 
+                  // allcode is associated to user
+                  {
+                     model: db.Allcode,
+                     as: 'positionData',
+                     attributes: ['valueEn', 'valueVi']
+                  },
+
+                  // table doctor_infor
+                  {
+                     model: db.Doctor_Infor,
+                     attributes: {
+                        exclude: ['id', 'doctorId', 'createdAt', 'updatedAt']
+                     },
+                     // allcode is associated to doctor_infor
+                     include: [
+                        {
+                           model: db.Allcode,
+                           as: 'priceData',
+                           attributes: ['valueEn', 'valueVi']
+                        },
+                        {
+                           model: db.Allcode,
+                           as: 'provinceData',
+                           attributes: ['valueEn', 'valueVi']
+                        },
+                        {
+                           model: db.Allcode,
+                           as: 'paymentData',
+                           attributes: ['valueEn', 'valueVi']
+                        }
+                     ]
+                  },
+               ],
+               raw: false,
+               nest: true
+            })
+            if (data && data.image) {
+               data.image = new Buffer(data.image, 'base64').toString('binary');
+            }
+            if (!data) data = {}
+            resolve({
+               errCode: 0,
+               data: data
+            })
+         }
+      } catch (error) {
+         reject(error)
+      }
+   })
+}
 module.exports = {
    getTopDoctorHome: getTopDoctorHome,
    getAllDoctors: getAllDoctors,
@@ -329,5 +401,6 @@ module.exports = {
    getDetailDoctorById: getDetailDoctorById,
    bulkScheduleDoctor: bulkScheduleDoctor,
    getScheduleDoctorById: getScheduleDoctorById,
-   getMedicalAddressByDoctorId: getMedicalAddressByDoctorId
+   getMedicalAddressByDoctorId: getMedicalAddressByDoctorId,
+   getProfileDoctorByDoctorId: getProfileDoctorByDoctorId
 }
