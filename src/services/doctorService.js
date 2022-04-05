@@ -54,21 +54,37 @@ let getAllDoctors = () => {
       }
    })
 }
-
+let checkRequiredFields = (inputData) => {
+   let arrFields = ['doctorId',
+      'contentHTML',
+      'contentMarkdown',
+      'description',
+      'priceId',
+      'provinceId',
+      'paymentId',
+      'addressClinic',
+      'nameClinic',
+      'note',
+      'specialtyId'];
+   let isValided = true;
+   let element = '';
+   for (let i = 0; i < arrFields.length; i++) {
+      if (!inputData[arrFields[i]]) {
+         isValided = false;
+         element = arrFields[i];
+         break;
+      }
+   }
+   return { isValided, element }
+}
 let saveDetailInforDoctor = (inputData) => {
    return new Promise(async (resolve, reject) => {
       try {
-         if (!inputData.doctorId ||
-
-            !inputData.contentHTML || !inputData.contentMarkdown || !inputData.description ||
-
-            !inputData.priceId || !inputData.provinceId || !inputData.paymentId ||
-            !inputData.addressClinic || !inputData.nameClinic || !inputData.note
-
-         ) {
+         let checkInputData = checkRequiredFields(inputData);
+         if (!checkInputData.isValided) {
             resolve({
                errCode: 1,
-               errMessage: 'Missing required parameter'
+               errMessage: `Missing required parameter: ${checkInputData.element}`
             })
          } else {
             if (inputData.action === 'CREATE') {
@@ -87,7 +103,8 @@ let saveDetailInforDoctor = (inputData) => {
                   addressClinic: inputData.addressClinic,
                   nameClinic: inputData.nameClinic,
                   note: inputData.note,
-                  doctorId: inputData.doctorId
+                  doctorId: inputData.doctorId,
+                  specialtyId: inputData.specialtyId,
                });
                resolve({
                   errCode: 0,
@@ -128,6 +145,7 @@ let saveDetailInforDoctor = (inputData) => {
                   doctorInfor.addressClinic = inputData.addressClinic;
                   doctorInfor.nameClinic = inputData.nameClinic;
                   doctorInfor.note = inputData.note;
+                  doctorInfor.specialtyId = inputData.specialtyId;
                   await doctorInfor.save();
                   resolve({
                      errCode: 0,
@@ -189,6 +207,11 @@ let getDetailDoctorById = (id) => {
                         {
                            model: db.Allcode,
                            as: 'paymentData',
+                           attributes: ['valueEn', 'valueVi']
+                        },
+                        {
+                           model: db.Allcode,
+                           as: 'specialtyData',
                            attributes: ['valueEn', 'valueVi']
                         }
                      ]
@@ -291,7 +314,7 @@ let getMedicalAddressByDoctorId = (doctorId) => {
          } else {
             let data = await db.Doctor_Infor.findOne({
                where: { doctorId: doctorId },
-               attributes: ['priceId', 'provinceId', 'paymentId', 'addressClinic', 'nameClinic', 'note'],
+               attributes: ['priceId', 'provinceId', 'paymentId', 'addressClinic', 'nameClinic', 'note', 'specialtyId'],
                // allcode is associated to doctor_infor
                include: [
                   {
@@ -307,6 +330,11 @@ let getMedicalAddressByDoctorId = (doctorId) => {
                   {
                      model: db.Allcode,
                      as: 'paymentData',
+                     attributes: ['valueEn', 'valueVi']
+                  },
+                  {
+                     model: db.Allcode,
+                     as: 'specialtyData',
                      attributes: ['valueEn', 'valueVi']
                   }
                ],
@@ -373,6 +401,11 @@ let getProfileDoctorByDoctorId = (doctorId) => {
                         {
                            model: db.Allcode,
                            as: 'paymentData',
+                           attributes: ['valueEn', 'valueVi']
+                        },
+                        {
+                           model: db.Allcode,
+                           as: 'specialtyData',
                            attributes: ['valueEn', 'valueVi']
                         }
                      ]

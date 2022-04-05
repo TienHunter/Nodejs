@@ -11,12 +11,16 @@ module.exports = (sequelize, DataTypes) => {
          */
         static associate(models) {
             // define association here
+            Specialty.belongsTo(models.Allcode, { foreignKey: 'specialtyId', targetKey: 'keyMap', as: 'specialtyData' })
+            // Specialty.hasMany(models.Doctor_Infor, { foreignKey: 'specialtyId' });
+
         }
     };
     Specialty.init({
-        description: DataTypes.TEXT,
-        image: DataTypes.STRING,
-        name: DataTypes.STRING,
+        specialtyId: DataTypes.STRING,
+        descriptionHTML: DataTypes.TEXT,
+        descriptionMarkdown: DataTypes.TEXT,
+        image: DataTypes.TEXT,
 
     }, {
         sequelize,
