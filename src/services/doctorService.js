@@ -65,7 +65,9 @@ let checkRequiredFields = (inputData) => {
       'addressClinic',
       'nameClinic',
       'note',
-      'specialtyId'];
+      'specialtyId',
+      'clinicId'
+   ];
    let isValided = true;
    let element = '';
    for (let i = 0; i < arrFields.length; i++) {
@@ -105,6 +107,7 @@ let saveDetailInforDoctor = (inputData) => {
                   note: inputData.note,
                   doctorId: inputData.doctorId,
                   specialtyId: inputData.specialtyId,
+                  clinicId: inputData.clinicId,
                });
                resolve({
                   errCode: 0,
@@ -146,6 +149,7 @@ let saveDetailInforDoctor = (inputData) => {
                   doctorInfor.nameClinic = inputData.nameClinic;
                   doctorInfor.note = inputData.note;
                   doctorInfor.specialtyId = inputData.specialtyId;
+                  doctorInfor.clinicId = inputData.clinicId;
                   await doctorInfor.save();
                   resolve({
                      errCode: 0,

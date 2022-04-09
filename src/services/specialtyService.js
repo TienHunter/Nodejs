@@ -11,19 +11,35 @@ let createNewSpecialty = (data) => {
                errMessage: 'Missing required parameter'
             })
          } else {
-            await db.Specialty.create({
-               specialtyId: data.specialtyId,
-               descriptionHTML: data.descriptionHTML,
-               descriptionMarkdown: data.descriptionMarkdown,
-               image: data.image,
+            let specialty = await db.Specialty.findOne({
+               where: { specialtyId: data.specialtyId },
+               raw: false
             })
-            resolve({
-               errCode: 0,
-               message: 'create new specialty success'
-            })
+            if (!specialty) {
+               await db.Specialty.create({
+                  specialtyId: data.specialtyId,
+                  descriptionHTML: data.descriptionHTML,
+                  descriptionMarkdown: data.descriptionMarkdown,
+                  image: data.image,
+               })
+               resolve({
+                  errCode: 0,
+                  message: 'create new specialty success'
+               })
+            } else {
+               specialty.descriptionHTML = data.descriptionHTML;
+               specialty.descriptionMarkdown = data.descriptionMarkdown;
+               specialty.image = data.image;
+               await specialty.save();
+               resolve({
+                  errCode: 0,
+                  message: 'update specialty success'
+               })
+            }
+
          }
       } catch (error) {
-
+         reject(error)
       }
    })
 }
@@ -66,9 +82,9 @@ let getDetailSpecialty = (specialtyId) => {
             let data = {};
             let specialty = await db.Specialty.findOne({
                where: { specialtyId: specialtyId },
-               attributes: {
-                  exclude: ["image"]
-               }
+               // attributes: {
+               //    exclude: ["image"]
+               // }
             })
             if (specialty) {
                let doctors = await db.Doctor_Infor.findAll({
@@ -77,6 +93,9 @@ let getDetailSpecialty = (specialtyId) => {
                      exclude: ['id', 'createdAt', 'updatedAt']
                   }
                })
+               if (specialty.image) {
+                  specialty.image = new Buffer(specialty.image, 'base64').toString('binary');
+               }
                data.specialty = specialty;
                data.doctors = doctors;
             } else {
@@ -92,8 +111,41 @@ let getDetailSpecialty = (specialtyId) => {
       }
    })
 }
+let getIntroSpecialty = (specialtyId) => {
+   return new Promise(async (resolve, reject) => {
+      try {
+         if (!specialtyId) {
+            resolve({
+               errCode: 1,
+               errMessage: 'Missing required parameter'
+            })
+         } else {
+            let data = await db.Specialty.findOne({
+               where: { specialtyId: specialtyId },
+               // include: [
+               //    { model: db.Allcode, as: 'specialtyData', attributes: ['valueEn', 'valueVi'] },
+               // ],
+               // raw: true,
+               // nest: true
+            })
+            if (data && data.image) {
+               data.image = new Buffer(data.image, 'base64').toString('binary');
+            }
+            if (!data) data = [];
+            resolve({
+               errCode: 0,
+               message: 'get intro specialty success',
+               data
+            })
+         }
+      } catch (error) {
+         reject(error)
+      }
+   })
+}
 module.exports = {
    createNewSpecialty,
    getAllSpecialties,
-   getDetailSpecialty
+   getDetailSpecialty,
+   getIntroSpecialty
 }
