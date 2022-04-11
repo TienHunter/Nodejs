@@ -55,7 +55,7 @@ let getAllSpecialties = () => {
          });
          if (data && data.length > 0) {
             data = data.map(item => {
-               item.image = new Buffer(item.image, 'base64').toString('binary');
+               item.image = Buffer.from(item.image, 'base64').toString('binary');
                return item;
             })
          }
@@ -94,7 +94,7 @@ let getDetailSpecialty = (specialtyId) => {
                   }
                })
                if (specialty.image) {
-                  specialty.image = new Buffer(specialty.image, 'base64').toString('binary');
+                  specialty.image = Buffer.from(specialty.image, 'base64').toString('binary');
                }
                data.specialty = specialty;
                data.doctors = doctors;
@@ -129,7 +129,7 @@ let getIntroSpecialty = (specialtyId) => {
                // nest: true
             })
             if (data && data.image) {
-               data.image = new Buffer(data.image, 'base64').toString('binary');
+               data.image = Buffer.from(data.image, 'base64').toString('binary');
             }
             if (!data) data = [];
             resolve({

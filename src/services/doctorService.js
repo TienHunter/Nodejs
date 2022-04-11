@@ -1,4 +1,5 @@
 import db from "../models/index";
+import emailService from "./emailService"
 require('dotenv').config()
 
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE
@@ -16,6 +17,13 @@ let getTopDoctorHome = (limit) => {
             include: [
                { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
                { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
+               {
+                  model: db.Doctor_Infor,
+                  attributes: ["doctorId"],
+                  include: [
+                     { model: db.Allcode, as: 'specialtyData', attributes: ['valueEn', 'valueVi'] }
+                  ]
+               }
             ],
             raw: true,
             nest: true
@@ -227,7 +235,7 @@ let getDetailDoctorById = (id) => {
                nest: true
             })
             if (data && data.image) {
-               data.image = new Buffer(data.image, 'base64').toString('binary');
+               data.image = Buffer.from(data.image, 'base64').toString('binary');
             }
             resolve({
                errCode: 0,
@@ -419,13 +427,111 @@ let getProfileDoctorByDoctorId = (doctorId) => {
                nest: true
             })
             if (data && data.image) {
-               data.image = new Buffer(data.image, 'base64').toString('binary');
+               data.image = Buffer.from(data.image, 'base64').toString('binary');
             }
             if (!data) data = {}
             resolve({
                errCode: 0,
                data: data
             })
+         }
+      } catch (error) {
+         reject(error)
+      }
+   })
+}
+let getListPatientsOfDoctor = (doctorId, date) => {
+   return new Promise(async (resolve, reject) => {
+      try {
+         if (!doctorId || !date) {
+            resolve({
+               errCode: 1,
+               errMessage: 'Missing required parameter'
+            })
+         } else {
+
+            let appointments = await db.Booking.findAll({
+               where: {
+                  doctorId: doctorId,
+                  date: date,
+                  statusId: 'S2'
+               },
+               include: [
+                  { model: db.Allcode, as: 'patientTimeData', attributes: ['valueEn', 'valueVi'] },
+                  {
+                     model: db.User,
+                     as: 'patientData',
+                     attributes: ['email', 'firstName', 'lastName', 'address'],
+                     include: [
+                        {
+                           model: db.Allcode,
+                           as: 'genderData',
+                           attributes: ['valueEn', 'valueVi']
+                        },
+                     ]
+                  },
+               ],
+               raw: false,
+               nest: true
+            })
+            if (!appointments) appointments = []
+            resolve({
+               errCode: 0,
+               message: 'get success',
+               data: appointments
+            })
+         }
+      } catch (error) {
+         reject(error)
+      }
+   })
+}
+let sendRemedy = (data) => {
+   return new Promise(async (resolve, reject) => {
+      try {
+         if (!data.doctorId || !data.patientId ||
+            !data.email || !data.image ||
+            !data.timeData || !data.namePatient
+            || !data.language) {
+            resolve({
+               errCode: 1,
+               errMessage: 'Missing required parameter'
+            })
+         } else {
+            //update statusId
+            let appointment = await db.Booking.findOne({
+               where: {
+                  doctorId: data.doctorId,
+                  patientId: data.patientId,
+                  statusId: 'S2'
+               },
+               raw: false
+            })
+            if (appointment) {
+               appointment.statusId = 'S3';
+               await appointment.save();
+               // send email
+               await emailService.sendRemedyEmail({
+                  language: data.language,
+                  email: data.email,
+                  patientName: data.namePatient,
+                  patientId: data.patientId,
+                  image: data.image
+               })
+               resolve({
+                  errCode: 0,
+                  message: 'OKE'
+               })
+            } else {
+               console.log('undefined');
+               resolve({
+                  errCode: 2,
+                  errMessage: 'Missing find appointment'
+               })
+            }
+
+
+
          }
       } catch (error) {
          reject(error)
@@ -440,5 +546,7 @@ module.exports = {
    bulkScheduleDoctor: bulkScheduleDoctor,
    getScheduleDoctorById: getScheduleDoctorById,
    getMedicalAddressByDoctorId: getMedicalAddressByDoctorId,
-   getProfileDoctorByDoctorId: getProfileDoctorByDoctorId
+   getProfileDoctorByDoctorId: getProfileDoctorByDoctorId,
+   getListPatientsOfDoctor,
+   sendRemedy
 }

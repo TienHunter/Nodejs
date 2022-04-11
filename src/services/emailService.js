@@ -53,8 +53,56 @@ let buildEmailHTML = (recipient) => {
 
    }
 }
+let sendRemedyEmail = async (recipient) => {
+   console.log('check mail send: ', recipient.email);
+   // Generate test SMTP service account from ethereal.email
+   // Only needed if you don't have a real mail account for testing
+   // let testAccount = await nodemailer.createTestAccount();
+
+   // create reusable transporter object using the default SMTP transport
+
+   let transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // true for 465, false for other ports
+      auth: {
+         user: process.env.EMAIL_APP, // generated ethereal user
+         pass: process.env.EMAIL_APP_PASSWORD, // generated ethereal password
+      },
+   });
+
+   // send mail with defined transport object
+   let info = await transporter.sendMail({
+      from: '"hỏi dân it 👻" <tienkbtnhp@gmail.com>', // sender address
+      to: recipient.email, // list of receivers
+      subject: "Thông tin lịch khám bệnh", // Subject line
+      html: buildRemedyEmailHTML(recipient), // html body
+      attachments: [
+         {   // encoded string as an attachment
+            filename: `${recipient.patientId}-${recipient.patientName}-${new Date().getTime()}.png`,
+            content: recipient.image.split("base64,")[1],
+            encoding: 'base64'
+         },
+      ]
+   });
+}
+let buildRemedyEmailHTML = (recipient) => {
+   if (recipient.language === 'vi') {
+      return (`
+    <h3>Xin chào ${recipient.patientName}</h3>
+    <p>Đơn thuốc của bạn đã được gửi tại email này</p>
+    `)
+   }
+   if (recipient.language === 'en') {
+      return (`
+      <h3>Hello ${recipient.patientName}</h3>
+      <p>Remedy has send to you</p>
+      `)
+
+   }
+}
 
 module.exports = {
    sendEmail,
-
+   sendRemedyEmail
 }
